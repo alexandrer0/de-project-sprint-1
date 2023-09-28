@@ -2,8 +2,6 @@
 
 ## 1.1. Выясните требования к целевой витрине.
 
-{См. задание на платформе}
------------
 1. Витрина должна быть создана в схеме analysis, с наименованием dm_rfm_segments
 2. Витрина содержит 4 поля:
     user_id
@@ -16,20 +14,18 @@
 
 ## 1.2. Изучите структуру исходных данных.
 
-{См. задание на платформе}
-
------------
-
-Исходные данные находятся в схеме production
+Исходные данные находятся в схеме production.
+users - данные о пользователях
+orders - данные о заказах
+products - данные о продуктах
+orderitems - детализация заказов по продуктам
+orderstatuses - справочник статусов
+orderstatuslog - логи изменения статусов заказов
 Для расчета витрины необходимы источники из схемы production:
-    users,
-    orders,
-    Orderitems
+    users (id),
+    orders (order_id, user_id, order_ts, cost)
 
 ## 1.3. Проанализируйте качество данных
-
-{См. задание на платформе}
------------
 
 Для проверки качества выполнено следующее:
 1. Обзорный анализ данных
@@ -58,13 +54,13 @@
 | Orderstatuslog | FOREIGN KEY (status_id) REFERENCES production.orderstatuses(id) | Внешний ключ          | Обеспечивает целостность данных: в таблице могут быть только те статусы, которые есть в Orderstatuses |
 | Orderstatuses  | id int4 NOT NULL PRIMARY KEY                                    | Первичный ключ        | Обеспечивает уникальность записей о статусах заказов                                                  |
 
+Качество данных высокое, для этого используется много инструментов, вопросов по качеству нет.
+Единственное, я бы добавил ограничение на user_id в таблице orders - внешний ключ к таблице users.
 
 ## 1.4. Подготовьте витрину данных
 
-{См. задание на платформе}
 ### 1.4.1. Сделайте VIEW для таблиц из базы production.**
 
-{См. задание на платформе}
 ```
 create or replace
 view analysis.users as
@@ -122,7 +118,6 @@ from
 
 ### 1.4.2. Напишите DDL-запрос для создания витрины.**
 
-{См. задание на платформе}
 ```
 CREATE TABLE analysis.dm_rfm_segments (
 	user_id INT NOT NULL PRIMARY KEY,
@@ -134,7 +129,6 @@ CREATE TABLE analysis.dm_rfm_segments (
 
 ### 1.4.3. Напишите SQL запрос для заполнения витрины
 
-{См. задание на платформе}
 ```
 insert into
 	analysis.tmp_rfm_recency
@@ -225,6 +219,7 @@ join analysis.tmp_rfm_frequency rf on
 	rr.user_id = rf.user_id
 join analysis.tmp_rfm_monetary_value rm on
 	rr.user_id = rm.user_id
+;
 
 --Первые 10 строк
 user_id	recency	frequency monetary_value
@@ -238,4 +233,37 @@ user_id	recency	frequency monetary_value
 7	4	2	2
 8	1	2	3
 9	1	3	2
+```
+
+## 2. Доработка представлений
+
+```
+create or replace
+view analysis.orders as
+with osl as
+(
+select
+	distinct on
+	(order_id) order_id,
+	status_id as status
+from
+	production.orderstatuslog
+order by
+	order_id,
+	dttm desc,
+	status_id desc)
+select 
+	o.order_id,
+	o.order_ts,
+	o.user_id,
+	o.bonus_payment,
+	o.payment,
+	o."cost",
+	o.bonus_grant,
+	osl.status
+from
+	production.orders as o
+join osl on
+	o.order_id = osl.order_id
+;
 ```
