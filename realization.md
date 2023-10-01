@@ -119,7 +119,7 @@ from
 ### 1.4.2. Напишите DDL-запрос для создания витрины.**
 
 ```
-CREATE TABLE analysis.dm_rfm_segments (
+CREATE TABLE IF NOT EXISTS analysis.dm_rfm_segments (
 	user_id INT NOT NULL PRIMARY KEY,
 	recency INT NOT NULL CHECK(recency >= 1 AND recency <= 5),
 	frequency INT NOT NULL CHECK(frequency >= 1 AND frequency <= 5),
